@@ -134,8 +134,10 @@ pred buildEnabled[c: Commit] {
 }
 
 pred buildWeakFairness { all c : Commit |
-  (eventually always buildEnabled[c]) implies
-  (always eventually some d: Deb | build[c, d])
+  weakFairness[
+    buildEnabled[c],
+    some d: Deb | build[c, d]
+  ]
 }
 
 
@@ -146,8 +148,10 @@ pred bakeEnabled[d: Deb] {
 }
 
 pred bakeWeakFairness { all d : Deb |
-  (eventually always bakeEnabled[d]) implies
-  (always eventually some a: AMI | bake[d, a])
+  weakFairness[
+    bakeEnabled[d],
+    some a: AMI | bake[d, a]
+  ]
 }
 
 pred liveness {
