@@ -148,10 +148,10 @@ assert everyPushedCommitWillBeBaked {
 }
 
 run { 
-  behavior 
-  some Commit
+  buildWeakFairness 
+
   some c1, c2 : Commit | no c1 & c2
-  // all c : Commit | eventually push[c]
+  all c : Commit | eventually push[c]
 }
 
 check everyPushedCommitWillBeBaked
