@@ -1,9 +1,30 @@
+/*
+
+Simple model that shows that always baking the "latest" version of a package
+can lead to certain packages never getting baked.
+
+ */
+
+
 /**
- * git and debian repositories
+ * Source control system, where the code lives
+ */
+one sig SCM {
+  var commits: set Commit,
+}
+
+/**
+ * Package repository
  */
 one sig Repo {
-  var commits: set Commit,
   var packages: set Deb,
+}
+
+
+/**
+ * Where the AMIs live
+ */
+one sig AWS {
   var amis: set AMI
 }
 
@@ -30,9 +51,9 @@ sig AMI {
  */
 pred push[c: Commit] {
 
-  no c & Repo.commits   // c is not in the repo yet
+  no c & SCM.commits   // c is not in the repo yet
 
-  commits' = commits + Repo->c
+  commits' = commits + SCM->c
   packages' = packages
   amis' = amis
   latest' = latest
@@ -43,7 +64,7 @@ pred push[c: Commit] {
  */
 pred build[c : Commit, d: Deb] {
   no d & Repo.packages
-  some c & Repo.commits // commit is in the repository
+  some c & SCM.commits // commit is in the repository
   d.commit = c // commit is associated with the deb
   packages' = packages + Repo->d  // deb gets added
   latest' = DB->d // db marked as latest
@@ -56,11 +77,11 @@ pred build[c : Commit, d: Deb] {
  */
  pred bake[d: Deb, a: AMI] {
    a.deb = d
-   no d & Repo.amis.deb // d hasn't already been baked into an AMI yet
+   no d & AWS.amis.deb // d hasn't already been baked into an AMI yet
    d in DB.latest  // d is the latest
    d in Repo.packages // d is in the repository
 
-   amis' = amis + Repo->a  // AMI gets added to the repo
+   amis' = amis + AWS->a  // AMI gets added to the repo
 
    packages' = packages
    latest' = latest
@@ -84,14 +105,14 @@ fact amisHaveUniqueDebs {
 
 }
 
-fact init {
-  no Repo.commits
+pred init {
+  no SCM.commits
   no Repo.packages
-  no Repo.amis
+  no AWS.amis
   no DB.latest
 }
 
-fact transitions {
+pred transitions {
   always (
     stutter or
     (some c : Commit | push[c]) or
@@ -105,7 +126,7 @@ fact transitions {
  */
 pred buildEnabled[c: Commit] {
   no commit.c & Repo.packages
-  some c & Repo.commits
+  some c & SCM.commits
 }
 
 pred buildWeakFairness { all c : Commit |
@@ -115,7 +136,7 @@ pred buildWeakFairness { all c : Commit |
 
 
 pred bakeEnabled[d: Deb] {
-   no d & Repo.amis.deb // d hasn't already been baked into an AMI yet
+   no d & AWS.amis.deb // d hasn't already been baked into an AMI yet
    d in DB.latest  // d is the latest
    d in Repo.packages // d is in the repository
 }
@@ -130,7 +151,9 @@ pred liveness {
   bakeWeakFairness
 }
 
-pred behavior {
+fact behavior {
+  init
+  transitions
   liveness
 }
 
@@ -142,16 +165,8 @@ assert everyPushedCommitWillBeBuilt {
 
 assert everyPushedCommitWillBeBaked {
   liveness implies all c : Commit | always (
-    push[c] implies eventually some a: Repo.amis | a.deb.commit = c
+    push[c] implies eventually some a: AWS.amis | a.deb.commit = c
   )
 }
 
 check everyPushedCommitWillBeBaked
-
-run {
-  buildWeakFairness
-
-  some c1, c2 : Commit | no c1 & c2
-  all c : Commit | eventually push[c]
-}
-
