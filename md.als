@@ -6,6 +6,10 @@ can lead to certain packages never getting baked.
  */
 
 
+ // macros
+let unchanged[x] {x' = x}
+let weakFairness[x, y] { (eventually always x) implies (always eventually y)}
+
 /**
  * Source control system, where the code lives
  */
@@ -54,9 +58,9 @@ pred push[c: Commit] {
   no c & SCM.commits   // c is not in the repo yet
 
   commits' = commits + SCM->c
-  packages' = packages
-  amis' = amis
-  latest' = latest
+  unchanged[packages]
+  unchanged[amis]
+  unchanged[latest]
 }
 
 /**
@@ -68,8 +72,8 @@ pred build[c : Commit, d: Deb] {
   d.commit = c // commit is associated with the deb
   packages' = packages + Repo->d  // deb gets added
   latest' = DB->d // db marked as latest
-  amis' = amis
-  commits' = commits
+  unchanged[amis]
+  unchanged[commits]
 }
 
 /**
@@ -83,17 +87,17 @@ pred build[c : Commit, d: Deb] {
 
    amis' = amis + AWS->a  // AMI gets added to the repo
 
-   packages' = packages
-   latest' = latest
-   commits' = commits
+   unchanged[packages]
+   unchanged[latest]
+   unchanged[commits]
 
  }
 
 pred stutter {
-  commits' = commits
-  packages' = packages
-  amis' = amis
-  latest' = latest
+  unchanged[commits]
+  unchanged[packages]
+  unchanged[amis]
+  unchanged[latest]
 }
 
 fact debsHaveUniqueCommits {
