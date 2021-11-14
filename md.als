@@ -46,7 +46,7 @@ pred build[c : Commit, d: Deb] {
   some c & Repo.commits // commit is in the repository
   d.commit = c // commit is associated with the deb
   packages' = packages + Repo->d  // deb gets added
-  latest' = latest + DB->d // db marked as latest
+  latest' = DB->d // db marked as latest
   amis' = amis
   commits' = commits
 }
@@ -134,7 +134,6 @@ pred behavior {
   liveness
 }
 
-
 assert everyPushedCommitWillBeBuilt {
     buildWeakFairness implies
     all c : Commit | always (push[c] implies eventually some d: Repo.packages | d.commit = c)
@@ -147,11 +146,12 @@ assert everyPushedCommitWillBeBaked {
   )
 }
 
-run { 
-  buildWeakFairness 
+check everyPushedCommitWillBeBaked
+
+run {
+  buildWeakFairness
 
   some c1, c2 : Commit | no c1 & c2
   all c : Commit | eventually push[c]
 }
 
-check everyPushedCommitWillBeBaked
